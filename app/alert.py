@@ -1,8 +1,7 @@
 import smtplib
 from email.message import EmailMessage
+from config import MINIMAL_SPEED
 import os
-
-MIN_DOWNLOAD = float(os.getenv("MIN_DOWNLOAD", 10))
 
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
@@ -10,7 +9,7 @@ SMTP_USER = os.getenv("SMTP_USER")
 SMTP_PASS = os.getenv("SMTP_PASS")
 ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO")
 
-def send_alert(download):
+def send_alert(download, upload, ping):
     if not SMTP_HOST:
         return
 
@@ -20,8 +19,10 @@ def send_alert(download):
     msg["To"] = ALERT_EMAIL_TO
     msg.set_content(
         f"Download speed dropped below threshold!\n\n"
-        f"Current: {download:.2f} Mbps\n"
-        f"Minimum: {MIN_DOWNLOAD:.2f} Mbps"
+        f"Current download: {download:.2f} Mbps\n"
+        f"Current upload : {upload:.2f} Mbps\n"
+        f"Current ping : {ping:.2f} ms\n"
+        f"Minimum: {MINIMAL_SPEED:.2f} Mbps"
     )
 
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:

@@ -3,7 +3,8 @@ import json
 import os
 import time
 from db import init_db, get_conn
-from alert import send_alert, MIN_DOWNLOAD
+from alert import send_alert
+from config import MINIMAL_SPEED
 
 os.environ['TZ'] = 'Europe/Warsaw'
 time.tzset()
@@ -74,7 +75,9 @@ if __name__ == "__main__":
     download, upload, ping = run_speedtest()
     save(download, upload, ping)
 
-    if download < MIN_DOWNLOAD:
-        send_alert(download)
+    if download < MINIMAL_SPEED:
+        send_alert(download, upload, ping)
+    if upload < MINIMAL_SPEED:
+        send_alert(download, upload, ping)
 
     print(f"OK ↓{download:.2f} ↑{upload:.2f} ping {ping}")

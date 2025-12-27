@@ -22,20 +22,21 @@
         </div>
     </div>
 
-    {% if stats and stats.download_min < min_download %}
+    {% if down_stats and down_stats.download_min < minimal_speed or up_stats.upload_min < minimal_speed %}
     <div class="alert alert-danger">
-        ⚠️ Wykryto spadek prędkości poniżej {{ min_download }} Mbps
+        ⚠️ Wykryto spadek prędkości poniżej {{ minimal_speed }} Mbps
     </div>
     {% endif %}
 
     <!-- STATYSTYKI -->
-    {% if stats %}
+    {% if down_stats %}
     <div class="row mb-4">
+    <div class="col-md-12 h3">Download</div>
         <div class="col-md-4">
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h6>⬇ Min</h6>
-                    <strong>{{ "%.2f"|format(stats.download_min) }} Mbps</strong>
+                    <strong>{{ "%.2f"|format(down_stats.download_min) }} Mbps</strong>
                 </div>
             </div>
         </div>
@@ -43,7 +44,7 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h6>⬇ Avg</h6>
-                    <strong>{{ "%.2f"|format(stats.download_avg) }} Mbps</strong>
+                    <strong>{{ "%.2f"|format(down_stats.download_avg) }} Mbps</strong>
                 </div>
             </div>
         </div>
@@ -51,14 +52,40 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <h6>⬇ Max</h6>
-                    <strong>{{ "%.2f"|format(stats.download_max) }} Mbps</strong>
+                    <strong>{{ "%.2f"|format(down_stats.download_max) }} Mbps</strong>
                 </div>
             </div>
         </div>
     </div>
-    {% else %}
-    <div class="alert alert-info">
-        ⏳ Brak danych pomiarowych – czekam na pierwszy test prędkości. 
+    {% endif %}
+    <!-- STATYSTYKI -->
+    {% if up_stats %}
+    <div class="row mb-4">
+    <div class="col-md-12 h3">Upload</div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>⬇ Min</h6>
+                    <strong>{{ "%.2f"|format(up_stats.upload_min) }} Mbps</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>⬇ Avg</h6>
+                    <strong>{{ "%.2f"|format(up_stats.upload_avg) }} Mbps</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6>⬇ Max</h6>
+                    <strong>{{ "%.2f"|format(up_stats.upload_max) }} Mbps</strong>
+                </div>
+            </div>
+        </div>
     </div>
     {% endif %}
     <!-- WYKRESY -->
@@ -94,7 +121,7 @@
                     </thead>
                     <tbody>
                         {% for r in rows %}
-                        <tr class="{% if r[1] < min_download %}table-danger{% endif %}">
+                        <tr class="{% if r[1] < minimal_speed or r[2] < minimal_speed %}table-danger{% elif r[1] < acceptable_speed or r[2] < acceptable_speed %}table-warning{% else %}table-success{% endif %}">
                             <td>{{ r[0] }}</td>
                             <td>{{ "%.2f"|format(r[1]) }}</td>
                             <td>{{ "%.2f"|format(r[2]) }}</td>
@@ -119,15 +146,75 @@ const labels = {{ labels|safe }};
 const downloads = {{ downloads|safe }};
 const uploads = {{ uploads|safe }};
 const pings = {{ pings|safe }};
+const MINIMAL_SPEED = {{ minimal_speed }};
+const ACCEPTABLE_SPEED = {{ acceptable_speed }};
 
 new Chart(speedChart, {
     type: "line",
     data: {
         labels,
         datasets: [
-            { label: "Download", data: downloads, borderColor: "#0d6efd", tension: 0.3 },
-            { label: "Upload", data: uploads, borderColor: "#198754", tension: 0.3 }
+            {
+                label: "Download",
+                data: downloads,
+                borderColor: "#0d6efd", // primary
+                tension: 0.3
+            },
+            {
+                label: "Upload",
+                data: uploads,
+                borderColor: "#198754", // success
+                tension: 0.3
+            },
+            // 🔴 danger
+            {
+                label: "Prędkość minimalna",
+                data: Array(labels.length).fill(MINIMAL_SPEED),
+                borderColor: "#dc3545",
+                backgroundColor: "rgb(220, 53, 69, 0.2)",
+                borderWidth: 2,
+                borderDash: [6, 6],
+                pointRadius: 0,
+                fill: true,
+                tension: 0.3
+            },
+            // 🟡 warning
+            {
+                label: "Prędkość gwarantowana",
+                data: Array(labels.length).fill(ACCEPTABLE_SPEED),
+                borderColor: "#ffc107",
+                backgroundColor: "rgb(255, 193, 7, 0.2)",
+                borderWidth: 2,
+                borderDash: [6, 6],
+                pointRadius: 0,
+                fill: true,
+                tension: 0.3
+            }
         ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                labels: {
+                    usePointStyle: true
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} Mbps`
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: "Mbps"
+                }
+            }
+        }
     }
 });
 
@@ -138,6 +225,9 @@ new Chart(pingChart, {
         datasets: [
             { label: "Ping (ms)", data: pings, borderColor: "#dc3545", tension: 0.3 }
         ]
+    },
+    options: {
+        responsive: true
     }
 });
 

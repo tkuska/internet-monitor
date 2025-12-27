@@ -3,9 +3,10 @@ from db import init_db, get_conn
 import json
 import os
 import time
+from config import MINIMAL_SPEED, ACCEPTABLE_SPEED
 
 app = Flask(__name__)
-MIN_DOWNLOAD = float(os.getenv("MIN_DOWNLOAD", 0))
+
 os.environ['TZ'] = 'Europe/Warsaw'
 time.tzset()
 
@@ -38,7 +39,8 @@ def index():
             rows=[],
             title=title,
             range=range_param,
-            min_download=MIN_DOWNLOAD,
+            minimal_speed=MINIMAL_SPEED,
+            acceptable_speed=ACCEPTABLE_SPEED,
             labels="[]",
             downloads="[]",
             uploads="[]",
@@ -53,10 +55,15 @@ def index():
     uploads = [r[2] for r in chart_rows]
     pings = [r[3] for r in chart_rows]
 
-    stats = {
+    down_stats = {
         "download_min": min(downloads),
         "download_avg": sum(downloads) / len(downloads),
         "download_max": max(downloads),
+    }
+    up_stats = {
+        "upload_min": min(uploads),
+        "upload_avg": sum(uploads) / len(uploads),
+        "upload_max": max(uploads),
     }
 
     return render_template(
@@ -64,12 +71,14 @@ def index():
         rows=rows,
         title=title,
         range=range_param,
-        min_download=MIN_DOWNLOAD,
+        minimal_speed=MINIMAL_SPEED,
+        acceptable_speed=ACCEPTABLE_SPEED,
         labels=json.dumps(labels),
         downloads=json.dumps(downloads),
         uploads=json.dumps(uploads),
         pings=json.dumps(pings),
-        stats=stats
+        down_stats=down_stats,
+        up_stats=up_stats
     )
 
 if __name__ == "__main__":
