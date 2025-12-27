@@ -27,6 +27,7 @@ def run_speedtest():
     data = json.loads(result.stdout)
     if "download" not in data:
         raise ValueError("Invalid speedtest output")
+
     download_mbps = round(data["download"]["bandwidth"] * 8 / 1_000_000, 2)
     upload_mbps   = round(data["upload"]["bandwidth"] * 8 / 1_000_000, 2)
     ping_ms       = round(data["ping"]["latency"], 2)
@@ -38,6 +39,7 @@ def save(download, upload, ping):
     cur = conn.cursor()
 
     connection = get_connection_type()
+
 
     cur.execute(
         """
@@ -58,9 +60,9 @@ def get_connection_type():
         )
         output = result.stdout
 
-        if "dev wlan" in output:
+        if "dev wlan0" in output:
             return "wifi"
-        if "dev eth" in output:
+        if "dev eth0" in output:
             return "ethernet"
 
         return "unknown"
