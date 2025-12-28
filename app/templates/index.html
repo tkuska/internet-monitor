@@ -153,6 +153,7 @@ const uploads = {{ uploads|safe }};
 const pings = {{ pings|safe }};
 const MINIMAL_SPEED = {{ minimal_speed }};
 const ACCEPTABLE_SPEED = {{ acceptable_speed }};
+const MAX_SPEED = {{ max_speed }};
 
 new Chart(speedChart, {
     type: "line",
@@ -189,6 +190,18 @@ new Chart(speedChart, {
                 data: Array(labels.length).fill(ACCEPTABLE_SPEED),
                 borderColor: "#ffc107",
                 backgroundColor: "rgb(255, 193, 7, 0.2)",
+                borderWidth: 2,
+                borderDash: [6, 6],
+                pointRadius: 0,
+                fill: true,
+                tension: 0.3
+            },
+            // 🟡 success
+            {
+                label: "Prędkość oczekiwana",
+                data: Array(labels.length).fill(MAX_SPEED),
+                borderColor: "#2c8e2c",
+                backgroundColor: "rgba(44,142,44, 0.2)",
                 borderWidth: 2,
                 borderDash: [6, 6],
                 pointRadius: 0,

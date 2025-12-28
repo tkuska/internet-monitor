@@ -3,7 +3,7 @@ from db import init_db, get_conn
 import json
 import os
 import time
-from config import MINIMAL_SPEED, ACCEPTABLE_SPEED
+from config import MINIMAL_SPEED, ACCEPTABLE_SPEED, MAX_SPEED
 
 app = Flask(__name__)
 
@@ -42,6 +42,7 @@ def index():
             range=range_param,
             minimal_speed=MINIMAL_SPEED,
             acceptable_speed=ACCEPTABLE_SPEED,
+            max_speed=MAX_SPEED,
             labels="[]",
             downloads="[]",
             uploads="[]",
@@ -75,6 +76,7 @@ def index():
         range=range_param,
         minimal_speed=MINIMAL_SPEED,
         acceptable_speed=ACCEPTABLE_SPEED,
+        max_speed=MAX_SPEED,
         labels=json.dumps(labels),
         downloads=json.dumps(downloads),
         uploads=json.dumps(uploads),

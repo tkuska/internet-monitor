@@ -25,4 +25,6 @@ RUN crontab /etc/cron.d/speedtest
 
 VOLUME ["/data"]
 
-CMD python /app/main.py && cron && python /app/web.py
+CMD python /app/main.py \
+ && cron \
+ && gunicorn --bind 0.0.0.0:5000 --workers 3 web:app
