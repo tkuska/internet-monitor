@@ -106,32 +106,37 @@
     <!-- TABELA -->
     <div class="card shadow-sm">
         <div class="card-body">
-            <h5>Ostatnie pomiary</h5>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <h5 class="mb-0">Ostatnie pomiary</h5>
+                <button id="deleteSelected" class="btn btn-sm btn-danger" disabled>
+                    🗑️ Usuń zaznaczone
+                </button>
+            </div>
 
             <div class="table-responsive">
-                <table class="table table-sm table-striped">
+                <table class="table table-sm table-striped align-middle">
                     <thead>
                         <tr>
+                            <th style="width: 32px;">
+                                <input type="checkbox" class="form-check-input" id="selectAll">
+                            </th>
                             <th>Czas</th>
-                            <th>⬇</th>
-                            <th>⬆</th>
-                            <th>📶</th>
-			    <th>🌐</th>
+                            <th>Download</th>
+                            <th>Upload</th>
+                            <th>Ping</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for r in rows %}
-                        <tr class="{% if r[1] < minimal_speed or r[2] < minimal_speed %}table-danger{% elif r[1] < acceptable_speed or r[2] < acceptable_speed %}table-warning{% else %}table-success{% endif %}">
-                            <td>{{ r[0] }}</td>
-                            <td>{{ "%.2f"|format(r[1]) }}</td>
-                            <td>{{ "%.2f"|format(r[2]) }}</td>
-                            <td>{{ r[3] }}</td>
+                        <tr class="{% if r.download < minimal_speed or r.upload < minimal_speed %}table-danger{% elif r.download < acceptable_speed or r.upload < acceptable_speed %}table-warning{% else %}table-success{% endif %}">
                             <td>
-  				{% if r[4] == "wifi" %}📶 Wi-Fi
-  				{% elif r[4] == "ethernet" %}🔌 LAN
-  				{% else %}❓{% endif %}
-			    </td>
-			</tr>
+                                <input type="checkbox" class="form-check-input row-checkbox" value="{{ r.id }}">
+                            </td>
+                            <td>{{ r.timestamp }}</td>
+                            <td>{{ "%.2f"|format(r.download) }}</td>
+                            <td>{{ "%.2f"|format(r.upload) }}</td>
+                            <td>{{ r.ping }}</td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -237,6 +242,72 @@ function toggleTheme() {
 }
 
 setTimeout(() => location.reload(), 300000); // auto-refresh 5 min
+
+const selectAllCheckbox = document.getElementById("selectAll");
+const deleteButton = document.getElementById("deleteSelected");
+const rowCheckboxes = Array.from(document.querySelectorAll(".row-checkbox"));
+const deleteButtonInitialHtml = deleteButton ? deleteButton.innerHTML : "";
+
+function syncBulkSelectionState() {
+    if (!deleteButton) {
+        return;
+    }
+    const anyChecked = rowCheckboxes.some(cb => cb.checked);
+    const allChecked = rowCheckboxes.length > 0 && rowCheckboxes.every(cb => cb.checked);
+    deleteButton.disabled = !anyChecked;
+    if (selectAllCheckbox) {
+        selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+        selectAllCheckbox.checked = rowCheckboxes.length > 0 && allChecked;
+    }
+}
+
+if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener("change", () => {
+        rowCheckboxes.forEach(cb => {
+            cb.checked = selectAllCheckbox.checked;
+        });
+        syncBulkSelectionState();
+    });
+}
+
+rowCheckboxes.forEach(cb => cb.addEventListener("change", syncBulkSelectionState));
+
+if (deleteButton) {
+    deleteButton.addEventListener("click", async () => {
+        const ids = rowCheckboxes.filter(cb => cb.checked).map(cb => Number(cb.value));
+        if (!ids.length) {
+            return;
+        }
+        if (!confirm(`Usunąć ${ids.length} wybranych rekordów?`)) {
+            return;
+        }
+        deleteButton.disabled = true;
+        deleteButton.innerHTML = "⏳ Usuwanie...";
+        try {
+            const response = await fetch("/delete", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ ids })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                alert(data.error || "Nie udało się usunąć rekordów.");
+                return;
+            }
+            location.reload();
+        } catch (error) {
+            console.error(error);
+            alert("Wystąpił błąd podczas usuwania rekordów.");
+        } finally {
+            deleteButton.innerHTML = deleteButtonInitialHtml;
+            syncBulkSelectionState();
+        }
+    });
+}
+
+syncBulkSelectionState();
 </script>
 
 </body>

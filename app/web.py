@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from db import init_db, get_conn
 import json
 import os
@@ -24,15 +24,16 @@ def index():
     conn = get_conn()
     cur = conn.cursor()
     cur.execute(f"""
-        SELECT timestamp, download, upload, ping
+        SELECT id, timestamp, download, upload, ping, connection
         FROM speedtests
         ORDER BY timestamp DESC
         LIMIT {limit}
     """)
-    rows = cur.fetchall()
+    raw_rows = cur.fetchall()
+    columns = [desc[0] for desc in cur.description]
     conn.close()
 
-    if not rows:
+    if not raw_rows:
         # brak danych – renderujemy pusty widok
         return render_template(
             "index.html",
@@ -48,12 +49,13 @@ def index():
             stats=None
         )
 
+    rows = [dict(zip(columns, r)) for r in raw_rows]
     chart_rows = rows[::-1]
 
-    labels = [r[0] for r in chart_rows]
-    downloads = [r[1] for r in chart_rows]
-    uploads = [r[2] for r in chart_rows]
-    pings = [r[3] for r in chart_rows]
+    labels = [r["timestamp"] for r in chart_rows]
+    downloads = [r["download"] for r in chart_rows]
+    uploads = [r["upload"] for r in chart_rows]
+    pings = [r["ping"] for r in chart_rows]
 
     down_stats = {
         "download_min": min(downloads),
@@ -80,6 +82,29 @@ def index():
         down_stats=down_stats,
         up_stats=up_stats
     )
+
+@app.route("/delete", methods=["POST"])
+def delete_rows():
+    payload = request.get_json(silent=True) or {}
+    ids = payload.get("ids", [])
+
+    try:
+        normalized_ids = [int(i) for i in ids]
+    except (TypeError, ValueError):
+        return jsonify({"error": "Nieprawidłowe identyfikatory"}), 400
+
+    if not normalized_ids:
+        return jsonify({"error": "Brak zaznaczonych rekordów"}), 400
+
+    conn = get_conn()
+    cur = conn.cursor()
+    placeholders = ",".join(["?"] * len(normalized_ids))
+    cur.execute(f"DELETE FROM speedtests WHERE id IN ({placeholders})", normalized_ids)
+    deleted = cur.rowcount
+    conn.commit()
+    conn.close()
+
+    return jsonify({"deleted": deleted})
 
 if __name__ == "__main__":
     init_db()
