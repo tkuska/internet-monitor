@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app /app
 
-RUN echo "*/30 * * * * /usr/local/bin/python3 /app/main.py >> /var/log/cron.log 2>&1" > /etc/cron.d/speedtest
+RUN echo "20,50 * * * * /usr/local/bin/python3 /app/main.py >> /var/log/cron.log 2>&1" > /etc/cron.d/speedtest
 RUN chmod 0644 /etc/cron.d/speedtest
 RUN crontab /etc/cron.d/speedtest
 
